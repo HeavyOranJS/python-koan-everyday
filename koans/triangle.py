@@ -18,9 +18,17 @@
 #
 def triangle(a, b, c):
     # DELETE 'PASS' AND WRITE THIS CODE
+    #pass
+
+    sides = sorted([a, b, c])
+    if not (sides[0] > 0):
+        raise TriangleError('Some of your arguments have values that are negative or zero')
+    if (sides[0] + sides[1] <= sides[-1]):
+        raise TriangleError('Impossible triangle')
+
     if (a == b == c):
         return 'equilateral'
-    elif (a == b) | (b==c) | (a == c):
+    elif (a == b) | (b == c) | (a == c):
         return 'isosceles'
     else:
         return 'scalene'
