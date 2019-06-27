@@ -21,11 +21,34 @@ from runner.koan import *
 class Proxy:
     def __init__(self, target_object):
         # WRITE CODE HERE
-
+        self._log = []
         #initialize '_obj' attribute last. Trust me on this!
         self._obj = target_object
+    
+    # def __setattr__ (self, attrName):
+    #     self._log()
 
     # WRITE CODE HERE
+    def __setattr__ (self, attrName, value):
+        #//NOTE: bad implementation? Rules said all attributes should be passed.. 
+        if attrName[0] == "_": 
+            object.__setattr__(self, attrName, value)
+        else:
+            object.__setattr__(self._obj, attrName, value)
+            self._log.append(attrName)
+
+    def __getattr__ (self, attrName):
+        if attrName == "messages":
+            #//this is dumb
+            return lambda :self._log
+        self._log.append(attrName)
+        return getattr(self._obj, attrName)
+
+    def was_called(self, item):
+        return item in self._log
+
+    def number_of_times_called(self, item):
+        return self._log.count(item)
 
 # The proxy object should pass the following Koan:
 #
