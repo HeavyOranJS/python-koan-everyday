@@ -24,25 +24,33 @@ class Proxy:
         self._log = []
         #initialize '_obj' attribute last. Trust me on this!
         self._obj = target_object
-    
-    # def __setattr__ (self, attrName):
-    #     self._log()
 
     # WRITE CODE HERE
     def __setattr__ (self, attrName, value):
-        #//NOTE: bad implementation? Rules said all attributes should be passed.. 
-        if attrName[0] == "_": 
+        #//(github)sourabhv's solution uses list 
+        # selfAttr = [_log, _obj]
+        # if attrName in selfAttr:
+        # but it means you will create list every time __setattr__ is called,
+        # which is not nice. So, i'll stick with this soulutions. 
+        # 
+        #//Strictly speaking both solutions aren't complete because of 
+        # "Any attributes called on the proxy object should be forwarded to 
+        # the target object". _obj will not be forwarded thus making this incomplete, i guess
+        if attrName[0] == "_":
             object.__setattr__(self, attrName, value)
         else:
             object.__setattr__(self._obj, attrName, value)
             self._log.append(attrName)
 
     def __getattr__ (self, attrName):
-        if attrName == "messages":
-            #//this is dumb
-            return lambda :self._log
+        #// NOTE: this was dumb, but it worked
+        # if attrName == "messages":
+        #     return lambda :self._log
         self._log.append(attrName)
         return getattr(self._obj, attrName)
+
+    def messages(self):
+        return self._log
 
     def was_called(self, item):
         return item in self._log
