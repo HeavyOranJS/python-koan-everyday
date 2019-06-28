@@ -20,11 +20,11 @@ class AboutRegex(Koan):
         """
         string = "Hello, my name is Felix and these koans are based " + \
         "on Ben's book: Regular Expressions in 10 minutes."
-        m = re.search(__, string)
+        m = re.search('Felix', string)
         self.assertTrue(
             m and m.group(0) and
                 m.group(0) == 'Felix',
-            "I want my name")
+            "I want my name")#hi Felix
 
     def test_matching_literal_text_how_many(self):
         """
@@ -46,10 +46,11 @@ class AboutRegex(Koan):
         string = ("Hello, my name is Felix and these koans are based " +
             "on Ben's book: Regular Expressions in 10 minutes. " +
             "Repeat My name is Felix")
-        m = re.match('Felix', string)  # TIP: match may not be the best option
+        m = len(re.findall('Felix', string))  # TIP: match may not be the best option
 
+        #//Okay, but i changed m quite a lot, is this allowed now?
         # I want to know how many times my name appears
-        self.assertEqual(m, __)
+        self.assertEqual(m, 2)
 
     def test_matching_literal_text_not_case_sensitivity(self):
         """
@@ -63,8 +64,8 @@ class AboutRegex(Koan):
         string = "Hello, my name is Felix or felix and this koan " + \
             "is based on Ben's book: Regular Expressions in 10 minutes."
 
-        self.assertEqual(re.findall("felix", string), __)
-        self.assertEqual(re.findall("felix", string, re.IGNORECASE), __)
+        self.assertEqual(re.findall("felix", string), ['felix'])
+        self.assertEqual(re.findall("felix", string, re.IGNORECASE), ['Felix','felix'] )
 
     def test_matching_any_character(self):
         """
@@ -81,7 +82,7 @@ class AboutRegex(Koan):
                 + "sa1.xls"
 
         # I want to find all uses of myArray
-        change_this_search_string = 'a..xlx'
+        change_this_search_string = 'a..xl.'
         self.assertEquals(
             len(re.findall(change_this_search_string, string)),
             3)
@@ -107,7 +108,7 @@ class AboutRegex(Koan):
         # America(sa), but not (ca) TIP you can use the pattern .a.
         # which matches in above test but in this case matches more than
         # you want
-        change_this_search_string = '[nsc]a[2-9].xls'
+        change_this_search_string = '[ns]a[1-9].xls'
         self.assertEquals(
             len(re.findall(change_this_search_string, string)),
             3)
@@ -120,6 +121,7 @@ class AboutRegex(Koan):
             metacharacter.
 
         """
+        #added jam and pam, becaus standart variant 
         string = "sales.xlx\n"    \
                 + "sales1.xls\n"  \
                 + "orders3.xls\n" \
@@ -128,13 +130,15 @@ class AboutRegex(Koan):
                 + "sales3.xls\n"  \
                 + "europe2.xls\n"  \
                 + "sam.xls\n"  \
+                + "pam.xls\n"  \
+                + "jam.xls\n"  \
                 + "na1.xls\n"  \
                 + "na2.xls\n"  \
                 + "sa1.xls\n"  \
                 + "ca1.xls"
 
         # I want to find the name 'sam'
-        change_this_search_string = '[^nc]am'
+        change_this_search_string = '[^pj]am.xls'
         self.assertEquals(
             re.findall(change_this_search_string, string),
             ['sam.xls'])
