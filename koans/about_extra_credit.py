@@ -60,12 +60,14 @@ class Player():
     def stoppedRolling(self, value):
         self._stoppedRolling = value
 
-    def getNumber(self):
+    @property
+    def number(self):
+        """returns player ID number"""
         return self.__number
 
     def askIfWantToRollAgain(self):
         """ask player if he wants to roll again on this round"""
-        print("Player " + str(self.__number) + ". Wanna roll again? Y/N")
+        print("Player " + str(self.__number) + ". Do you want to roll again? Y/N")
         answer = input()
         while not (answer == "Y" or answer == "N"):
             print("""Please, answer "Y"/"N" """)
@@ -78,21 +80,32 @@ class Player():
         """returns list with amount of rolls equal to current avaliable dice"""
         return [random.randint(1,6) for i in range(self.currentDiceCount)]
 
+    def rolledEmpty(self):
+        """ends turn with mark that player rolled empty"""
+        self._gotEmptyRoll = True
+        self._scoreInRound = 0
+        self.endTurn()
+
     def startTurn(self):
         """get player ready for a new turn"""
+        self._gotEmptyRoll = False
         self._stoppedRolling = False
         self.currentDiceCount = self._diceCount
 
     def endTurn(self):
         """apply scores and removie ability to roll"""
+        #check if can earn points
+        if not self._canEarnPoints:
+            if self._scoreInRound > 300:
+                self._canEarnPoints = True
+
         if (self._canEarnPoints and not self._gotEmptyRoll): self._score += self._scoreInRound
         #TODO add print if they havent rolled 300 in one turn yet
         print("Player " + str(self.__number) + " has finished their turn with " +
             str(self._scoreInRound) + " points and now has " +
-            str(self._score)+ " points.")        
+            str(self._score) + " points.")        
         self._scoreInRound = 0
         self.dice = 0
-        
         self._stoppedRolling = True
 
 class Greed:
@@ -104,45 +117,45 @@ class Greed:
             raise ValueError("Minimal amount of players is 2. Your arg was " + str(playerCount)) 
         self._players = players
         self._gameEndingPoints = gameEndingPoints
+        playerNumber = 0
         for player in range(playerCount):
-            self._players.append(Player())
+            playerNumber += 1
+            self._players.append(Player(playerNumber))
 
     def _game(self):
         print("Game has started.")
         gameIsEnding = False
         roundNumber = 0
         while not gameIsEnding:
+            #check if someone has enough points to trigger endgame
             for player in self._players:
                 if player.score >= self._gameEndingPoints:
                     gameIsEnding = True
-                    print("Player " + player.getNumber() + " has more than " +
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print("Player " + str(player.number) + " has more than " +
                         str(self._gameEndingPoints) +
-                        "! This round is your last chance to catch up!")
-                roundNumber += 1
-                self._round(roundNumber)
+                        " points! This round is your last chance to catch up!")
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            roundNumber += 1
+            self._round(roundNumber)
         self._findWinner()
         print("Game has ended.")
 
     def _findWinner(self):
         #TODO refactor this garbage
-        leaderBoard = []
-        leaderBoardDict = {}
+        winnerScore = 0
+        winnerNumber = -1
         for player in self._players:
-            leaderBoard.append(player.score)
-            leaderBoardDict["Player " + str(player.getNumber())] = player.score
-            print("Player " + str(player.getNumber()) + " got " + player.score + " points")
-        
-        leaderBoard.sort(reverse = True)
-        
-        #TODO whaaaaat is this massacre, there is no way use dict to find name of the winner is correct
-        print("Player " + leaderBoardDict.values(leaderBoard[0]) + " won with " + leaderBoard[0] + "points!")  
+            if winnerScore < player.score:
+                winnerScore = player.score
+                winnerNumber = player.number
+        print("Player " + str(winnerNumber) + " won with " + str(winnerScore) + "points!")  
 
     def _round(self, roundNumber):
         #get all players ready for round
         rollNumber = 0
         for player in self._players:
             player.startTurn()
-        print(self._players[0].stoppedRolling)
         #everybody rolls first roll of the roundf
         firstRoll = True
         #start round
@@ -151,7 +164,6 @@ class Greed:
             #get all players who havent stopped rolling
             rollNumber += 1
             print("-----Round " + str(roundNumber) + " Roll " + str(rollNumber) + "-----")
-            playersInGame = []
             for player in self._players:
                 if player.stoppedRolling == False:
                     #if this is not a first roll in round check if player wants to stop
@@ -159,14 +171,14 @@ class Greed:
                         print("Rolling...")
                         #roll and find score
                         score = self._score(player._roll())
+                        #check, if roll has no points, then end turn and award no points 
                         if not score == 0:
                             player._scoreInRound += score
                             print("Now your score in round is " + str(player._scoreInRound) + "and you have " + "TODO" + " dice left.")
                         else:
-                            player.endTurn()
-                        player.scoreInRound += score
+                            player.rolledEmpty()
                     else:
-                        player.stoppedRolling = True
+                        player.endTurn()
             firstRoll = False
     #TODO print stats
 
@@ -210,6 +222,7 @@ class Greed:
                 finalScore += 50
             lastDie = die
         #TODO add spaces between numbers
+        #TODO tell 0 points is bust and means no points for this round
         print("You've rolled " + ''.join(str(roll) for roll in dice) + ", this equals to " + str(finalScore) + " points")
         return finalScore
 
