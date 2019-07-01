@@ -86,11 +86,18 @@ class Player():
         self._scoreInRound = 0
         self.endTurn()
 
+    def canRollAllDiceAgain(self):
+        """restores currentDiceCount to full"""
+        self.currentDiceCount = self._diceCount
+
     def startTurn(self):
-        """get player ready for a new turn"""
+        """get player ready for a new turn:
+            player havent got empty roll in this round yet,
+            player havent stopped rolling,
+            player's current dice count is full"""
         self._gotEmptyRoll = False
         self._stoppedRolling = False
-        self.currentDiceCount = self._diceCount
+        self.canRollAllDiceAgain()
 
     def endTurn(self):
         """apply scores and removie ability to roll"""
@@ -142,7 +149,6 @@ class Greed:
         print("Game has ended.")
 
     def _findWinner(self):
-        #TODO refactor this garbage
         winnerScore = 0
         winnerNumber = -1
         for player in self._players:
@@ -168,13 +174,18 @@ class Greed:
                 if player.stoppedRolling == False:
                     #if this is not a first roll in round check if player wants to stop
                     if firstRoll or player.askIfWantToRollAgain():
-                        print("Rolling...")
+                        print("Rolling " + str(player.currentDiceCount) + " dice...")
                         #roll and find score
-                        score = self._score(player._roll())
+                        score, nonScoringDice = self._score(player._roll())
                         #check, if roll has no points, then end turn and award no points 
                         if not score == 0:
                             player._scoreInRound += score
-                            print("Now your score in round is " + str(player._scoreInRound) + "and you have " + "TODO" + " dice left.")
+                            #if player scored all dice in a throw they can roll all dice again
+                            if nonScoringDice == 0:
+                                player.canRollAllDiceAgain()
+                            else:
+                                player.currentDiceCount = nonScoringDice
+                            print("Now your score in round is " + str(player._scoreInRound) + "and you have " + str(player.currentDiceCount) + " dice left.")
                         else:
                             player.rolledEmpty()
                     else:
@@ -198,7 +209,7 @@ class Greed:
             raise ValueError("You tried rolling less than a die. UNACCEPTABLEEee")
 
         #first roll cannot count towards streak
-        finalScore = streak = lastDie = 0
+        finalScore = streak = lastDie = scoringDice = 0
 
         #sorted order makes task easier: now all equial rolls are next to each other
         sortedDice = sorted(dice)
@@ -208,23 +219,30 @@ class Greed:
                 streak += 1
                 if streak == 2:#streak of 2 is three in a row
                     if die == 1:
+                        scoringDice += 1
                         finalScore += 700
                     elif die == 5:
+                        scoringDice += 1
                         finalScore += 350
-                    else: finalScore += die * 100
+                    else: 
+                        finalScore += die * 100
+                        scoringDice += 3
                     streak = 0
             else:
                 streak = 0
             #awards for single 1 and 5 roll
             if die == 1:
+                scoringDice += 1
                 finalScore += 100
             elif die == 5:
+                scoringDice += 1
                 finalScore += 50
             lastDie = die
-        #TODO add spaces between numbers
         #TODO tell 0 points is bust and means no points for this round
-        print("You've rolled " + ''.join(str(roll) for roll in dice) + ", this equals to " + str(finalScore) + " points")
-        return finalScore
+        print("You've rolled " + ', '.join(str(roll) for roll in dice) + ", this equals to " + str(finalScore) + " points.")
+        #if all dice are scoring dice, player can roll all of them again
+        #return rolled score and how many dice were non-scoring and can be rolled again
+        return finalScore, len(dice) - scoringDice
 
 class AboutExtraCredit(Koan):
     # Write tests here. If you need extra test classes add them to the
