@@ -13,24 +13,20 @@
 import random
 
 from runner.koan import *
-from about_dice_project import DiceSet
 
-class Player():
+class Player:
     """Player class with player info. 
-    By default should be empty, all variables are for testing purposes."""
-    def __init__(self, number = 1, score = 0, scoreInRound = 0, rolledThisTurn = False,
-     gotEmtpyRoll = False, stoppedRolling = False, canEarnPoints = False, endGame = False, dice = 5):
+    Number is effectivly ID, dice is amount of dice player can use in one roll"""
+    def __init__(self, number = 1, dice = 5):
         self.__number = number
-        self._score = score
-        self._scoreInRound = scoreInRound
-        self._rolledThisTurn = rolledThisTurn
-        self._gotEmptyRoll = gotEmtpyRoll #doesnt get to have points this turn
-        self._stoppedRolling = stoppedRolling #player can stop after first roll
-        self._canEarnPoints = canEarnPoints
+        self._score = 0
+        self._scoreInRound = 0
+        self._rolledThisTurn = False
+        self._gotEmptyRoll = False #doesnt get to have points this turn
+        self._stoppedRolling = False #player can stop after first roll
+        self._canEarnPoints = False
         self._diceCount = dice
         self.currentDiceCount = self._diceCount
-
-        self._endGame = endGame
 
     @property
     def score(self):
@@ -80,7 +76,7 @@ class Player():
             return True
         return False
 
-    def _roll(self):
+    def roll(self):
         """returns list with amount of rolls equal to current avaliable dice"""
         return [random.randint(1,6) for i in range(self.currentDiceCount)]
 
@@ -117,7 +113,7 @@ class Player():
             str(self._scoreInRound) + " points and now has " +
             str(self._score) + " points.")        
         self._scoreInRound = 0
-        self.dice = 0
+        self.currentDiceCount = 0
         self._stoppedRolling = True
 
 class Greed:
@@ -125,10 +121,14 @@ class Greed:
     Minimal amount of players is 2.
     gameEndingPoints defines how many points is needed to trigger last round. Default is 3000"""
     def __init__(self, playerCount = 2, gameEndingPoints = 3000, players = []):
-        if playerCount > 2:
+        if playerCount < 2:
             raise ValueError("Minimal amount of players is 2. Your arg was " + str(playerCount)) 
         self._players = players
         self._gameEndingPoints = gameEndingPoints
+
+        self._players = []#resets players between games
+        #without this append just adds new players to end of previous player list
+
         playerNumber = 0
         for player in range(playerCount):
             playerNumber += 1
@@ -179,7 +179,7 @@ class Greed:
                     if firstRoll or player.askIfWantToRollAgain():
                         print(player.info() + " is rolling " + str(player.currentDiceCount) + " dice...")
                         #roll and find score
-                        score, nonScoringDice = self._score(player._roll())
+                        score, nonScoringDice = self._score(player.roll())
                         #check, if roll is empty, then end turn and award no points 
                         if not score == 0:
                             player._scoreInRound += score
@@ -265,76 +265,98 @@ class AboutExtraCredit(Koan):
 #------------------player tests--------------    
     def test_players_can_roll(self):
         newb = Player()
-        self.assertEqual(1, len(newb._roll(1)))
-        self.assertEqual(5, len(newb._roll(5)))        
+        newb.currentDiceCount = 1 
+        self.assertEqual(1, len(newb.roll()))
 
-    def test_cannot_earn_points_untill_300_in_one_turn(self):
-        sadPlayer = Player(scoreInRound=299)
+        gosu = Player()
+        gosu.currentDiceCount = 10
+        self.assertEqual(10, len(gosu.roll()))        
+
+    def test_cannot_earn_points_untill_rolled_more_than_300_in_one_turn(self):
+        sadPlayer = Player()
+        sadPlayer.scoreInRound = 300
         sadPlayer.endTurn()
         self.assertEqual(0, sadPlayer.score)
-        
-        luckyPlayer = Player(300)
-        luckyPlayer.endTurn()
-        self.assertEqual(300, luckyPlayer.score)
 
-        luckyPlayer._scoreInRound= 1
+    def test_can_earn_points_after_rolled_more_than_300_in_one_turn(self):
+        #should get 300 points
+        luckyPlayer = Player()
+        luckyPlayer.scoreInRound = 301
         luckyPlayer.endTurn()
         self.assertEqual(301, luckyPlayer.score)
 
-
-    #TODO implement some sort of controlled rolling, 
-    # so i could check certain combinations
-    def test_players_cant_roll_more_dice_than_nonscoring_dice_last_turn(self):
-        pass
+        #should get points after he got 300 points
+        luckyPlayer._scoreInRound= 1
+        luckyPlayer.endTurn()
+        self.assertEqual(302, luckyPlayer.score)
 
     def test_player_can_end_turn(self):
-        #player can stop his turn on any roll after first one 
-        #and add current round points to score
-        
-        #check player cannot roll after he stopped
-        #! check player can(must) roll on the next turn
-        pass
+        player = Player()
+        player.endTurn()
+        self.assertEquals(True, player._stoppedRolling)
+
+    def test_player_can_start_turn(self):
+        player = Player()
+        player._stoppedRolling = True
+        player.currentDiceCount = 0
+        player.startTurn()
+        self.assertEquals(False, player._stoppedRolling)
+        self.assertEquals(player.currentDiceCount, player._diceCount)
 
     def test_lucky_roll(self):
-        #if all dice scored, player can roll again all dice
-        pass
+        luckyPlayer = Player()
+        luckyPlayer.currentDiceCount = 0
+        luckyPlayer.canRollAllDiceAgain()
+        self.assertEqual(luckyPlayer._diceCount, len(luckyPlayer.roll()))
 
     def test_unlucky_roll(self):
-        #player ends turn after an empty roll
-        #player loses all current round points after empty roll
-        #
-        pass
+        unluckyPlayer = Player()
+        unluckyPlayer.rolledEmpty()
+        self.assertEqual(0, unluckyPlayer.currentDiceCount)
 
 
 #------------------game tests-----------------
-    def test_greed_player_amounts(self):
-        newGame = Greed(2)
-        self.assertEqual(newGame.howManyPlayers, 2)
+    def test_greed_player_amount(self):
+        newGame = Greed()
+        print("players = " + str(len(newGame._players)))
+        self.assertEqual(newGame.howManyPlayers(), 2)
 
-        newGame = Greed(10)
-        self.assertEqual(newGame.howManyPlayers, 10)
+        newGame = Greed(playerCount=10)
+        self.assertEqual(newGame.howManyPlayers(), 10)
 
         with self.assertRaises(ValueError):
             newGame = Greed(1)
 
     def test_greed_can_score(self):
-        #score function was already tested
-        pass
+        newGame = Greed()
+        score, nonScoringDice = newGame._score([1,1,1])
+        self.assertEqual(score, 1000)
+        self.assertEqual(nonScoringDice, 0)
 
-    def test_greed_rolls_per_turn(self):
-        #cannot have less than one roll per turn, 
-        #can have more,
-        #player always rolls all five dice at turn one
-        # cannot roll after players stopped or rolled empty
-        pass
+    def test_greed_scores_special_streaks(self):
+        newGame = Greed()
+        score, nonScoringDice = newGame._score([5, 5, 5, 5])
+        self.assertEqual(score, 550)
+        self.assertEqual(nonScoringDice, 0)
+
+    def test_greed_scores_streaks(self):
+        newGame = Greed()
+        score, nonScoringDice = newGame._score([6, 6, 6, 6])
+        self.assertEqual(score, 600)
+        self.assertEqual(nonScoringDice, 1)
+        
+    def test_greed_scores_empty_rolls(self):
+        newGame = Greed()
+        score, nonScoringDice = newGame._score([2, 3, 4, 6])
+        self.assertEqual(score, 0)
+        self.assertEqual(nonScoringDice, 4)
+
+    def test_endgame_doesnt_happen_until_one_of_players_has_3000_or_more_points(self):
+        newGame = Greed(gameEndingPoints=3000)
+        newGame._players[0]._score = 2999 
+        self.assertEqual(newGame.isEndgame(), False)
 
     def test_endgame_happens_when_one_of_players_has_3000_or_more_points(self):
-        newGame = Greed()
-        #TODO test newGame.isEndstep somehow
-        pass
-
-#------------TODO tests ---------------------
-    def test_amount_of_nonscoring_dice(self):
-        pass
-        
-    # check in greed tests: player cannot roll more than 5 dice
+        newGame = Greed(gameEndingPoints=3000)
+        newGame._players[0]._score = 3000 
+        self.assertEqual(newGame.isEndgame(), True)
