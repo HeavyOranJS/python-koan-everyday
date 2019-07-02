@@ -65,9 +65,13 @@ class Player():
         """returns player ID number"""
         return self.__number
 
+    def info(self):
+        """returns nicely formatted string with player ID and score"""
+        return "[Player " + str(self.__number)+ ": "+ str(self.score) + "]" 
+
     def askIfWantToRollAgain(self):
         """ask player if he wants to roll again on this round"""
-        print("Player " + str(self.__number) + ". Do you want to roll again? Y/N")
+        print(self.info() + " Do you want to roll again? Y/N")
         answer = input()
         while not (answer == "Y" or answer == "N"):
             print("""Please, answer "Y"/"N" """)
@@ -107,8 +111,9 @@ class Player():
                 self._canEarnPoints = True
 
         if (self._canEarnPoints and not self._gotEmptyRoll): self._score += self._scoreInRound
-        #TODO add print if they havent rolled 300 in one turn yet
-        print("Player " + str(self.__number) + " has finished their turn with " +
+        if not self._canEarnPoints:
+            print("To start earn points you need to get 300 points in one round.")
+        print(self.info() + " has finished their turn with " +
             str(self._scoreInRound) + " points and now has " +
             str(self._score) + " points.")        
         self._scoreInRound = 0
@@ -131,38 +136,36 @@ class Greed:
 
     def _game(self):
         print("Game has started.")
-        gameIsEnding = False
+        endgameStarts = False
         roundNumber = 0
-        while not gameIsEnding:
-            #check if someone has enough points to trigger endgame
-            for player in self._players:
-                if player.score >= self._gameEndingPoints:
-                    gameIsEnding = True
-                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                    print("Player " + str(player.number) + " has more than " +
-                        str(self._gameEndingPoints) +
-                        " points! This round is your last chance to catch up!")
-                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        #repeat rounds until someone has enough points to trigger endGame
+        while not endgameStarts:
+            #while self.isEndgame finishes game as soon as someone gets gameEndingPoints
+            #but there should be one more round
+            endgameStarts = self.isEndgame()
             roundNumber += 1
             self._round(roundNumber)
-        self._findWinner()
+        self._scoreboard()
         print("Game has ended.")
 
-    def _findWinner(self):
+    def _scoreboard(self):
+        """Print scoreboard and winner of the game"""
         winnerScore = 0
         winnerNumber = -1
+        print("-----SCOREBOARD-----")
         for player in self._players:
+            print(player.info())
             if winnerScore < player.score:
                 winnerScore = player.score
-                winnerNumber = player.number
-        print("Player " + str(winnerNumber) + " won with " + str(winnerScore) + "points!")  
+                winnerNumber = player.number 
+        print("[Player " + str(winnerNumber) + "] won with " + str(winnerScore) + " points!")  
 
     def _round(self, roundNumber):
         #get all players ready for round
         rollNumber = 0
         for player in self._players:
             player.startTurn()
-        #everybody rolls first roll of the roundf
+        #everybody rolls first roll of the round
         firstRoll = True
         #start round
         #while anyone still wants to roll
@@ -174,10 +177,10 @@ class Greed:
                 if player.stoppedRolling == False:
                     #if this is not a first roll in round check if player wants to stop
                     if firstRoll or player.askIfWantToRollAgain():
-                        print("Rolling " + str(player.currentDiceCount) + " dice...")
+                        print(player.info() + " is rolling " + str(player.currentDiceCount) + " dice...")
                         #roll and find score
                         score, nonScoringDice = self._score(player._roll())
-                        #check, if roll has no points, then end turn and award no points 
+                        #check, if roll is empty, then end turn and award no points 
                         if not score == 0:
                             player._scoreInRound += score
                             #if player scored all dice in a throw they can roll all dice again
@@ -185,7 +188,8 @@ class Greed:
                                 player.canRollAllDiceAgain()
                             else:
                                 player.currentDiceCount = nonScoringDice
-                            print("Now your score in round is " + str(player._scoreInRound) + "and you have " + str(player.currentDiceCount) + " dice left.")
+                            print("Now your score in round is " + str(player._scoreInRound) + 
+                                " and you have " + str(player.currentDiceCount) + " dice left.")
                         else:
                             player.rolledEmpty()
                     else:
@@ -194,8 +198,15 @@ class Greed:
     #TODO print stats
 
     def isEndgame(self):
+        """Check if one of the players have enough points to trigger endgame.
+            If endgame is triggered print info about in"""
         for player in self._players:
-            if player.score >= 3000:
+            if player.score >= self._gameEndingPoints:
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print(player.info() + " has more than " +
+                    str(self._gameEndingPoints) +
+                    " points! This round is your last chance to catch up!")
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 return True
         return False
 
@@ -219,10 +230,8 @@ class Greed:
                 streak += 1
                 if streak == 2:#streak of 2 is three in a row
                     if die == 1:
-                        scoringDice += 1
                         finalScore += 700
                     elif die == 5:
-                        scoringDice += 1
                         finalScore += 350
                     else: 
                         finalScore += die * 100
@@ -239,11 +248,14 @@ class Greed:
                 finalScore += 50
             lastDie = die
         #TODO tell 0 points is bust and means no points for this round
-        print("You've rolled " + ', '.join(str(roll) for roll in dice) + ", this equals to " + str(finalScore) + " points.")
+        if finalScore == 0:
+            print("BUST!")
+        print("You've rolled " + ', '.join(str(roll) for roll in dice) + 
+            ", and got " + str(finalScore) + " points.")
         #if all dice are scoring dice, player can roll all of them again
         #return rolled score and how many dice were non-scoring and can be rolled again
         return finalScore, len(dice) - scoringDice
-
+        
 class AboutExtraCredit(Koan):
     # Write tests here. If you need extra test classes add them to the
     # test suite in runner/path_to_enlightenment.py
