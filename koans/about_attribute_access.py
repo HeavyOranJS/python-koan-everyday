@@ -126,7 +126,8 @@ class AboutAttributeAccess(Koan):
 
         def __init__(self):
             self.no_of_getattr_calls = 0
-
+ 
+        #//can be used to lazily get data from databases
         def __getattr__(self, attr_name):
             self.no_of_getattr_calls += 1
             return self.DuffObject
@@ -153,6 +154,8 @@ class AboutAttributeAccess(Koan):
     # ------------------------------------------------------------------
 
     class PossessiveSetter(object):
+        #//__setattr__ overload can be used for lazily pushing
+        #// data to database (or logging, or whatever) every time you set attribute
         def __setattr__(self, attr_name, value):
             new_attr_name =  attr_name
 
